@@ -11,6 +11,7 @@
 ^output$
 ^phewasflow-output$
 ^CITATION\.cff$
+^LICENSE\.md$
 ^\.gitignore$
 (^|/)\.DS_Store$
 (^|/)\.(vscode|idea|codex|agents)$

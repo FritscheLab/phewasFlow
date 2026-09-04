@@ -3,6 +3,9 @@
 An R package from the [Fritsche Lab](https://fritschelab.github.io) at the
 University of Michigan for reproducible phenome-wide association studies.
 
+If you use `phewasFlow` in research, please cite the software and report the
+version used. See [Citation](#citation) for the reference.
+
 `phewasFlow` fits one planned association model across many clinical
 phenotypes. It supports two common biomedical questions:
 
@@ -186,7 +189,7 @@ Building the vignettes requires Pandoc. The GitHub Actions workflow runs package
 checks on Linux and Windows. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 documentation build and release procedure.
 
-## Support and citation
+## Support
 
 Maintained by Lars Fritsche. Report reproducible problems through
 [GitHub issues](https://github.com/FritscheLab/phewasFlow/issues), using synthetic
@@ -194,12 +197,24 @@ examples and sanitized logs. Keep participant data, credentials, and local
 analysis configuration outside this repository. Even aggregate results and
 provenance files require review before sharing.
 
-Use `citation("phewasFlow")` from R or the repository's
-[citation metadata](https://github.com/FritscheLab/phewasFlow/blob/main/CITATION.cff), and record the package version in your work.
 The included examples are simulated; this is research software and is not a
 clinical or diagnostic tool.
 
+## Citation
+
+If you use `phewasFlow` in research, please cite the software and report the
+version used in your methods. To obtain the reference and BibTeX entry from R:
+
+```r
+citation("phewasFlow")
+toBibtex(citation("phewasFlow"))
+```
+
+The repository also provides [citation metadata](CITATION.cff) for GitHub's
+**Cite this repository** feature. Citation is requested as scholarly
+acknowledgment and is not an additional condition of the MIT license.
+
 ## License
 
-Publication and redistribution remain pending an approved license and copyright
-statement; see [LICENSE](https://github.com/FritscheLab/phewasFlow/blob/main/LICENSE).
+`phewasFlow` is distributed under the [MIT license](LICENSE.md).
+Copyright (c) 2026 Lars Fritsche.

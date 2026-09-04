@@ -1,0 +1,14 @@
+package_version <- if (!is.null(meta$Version)) meta$Version else "0.1.0"
+
+bibentry(
+  bibtype = "Manual",
+  title = "phewasFlow: Reproducible Bidirectional Phenome-Wide Association Studies",
+  author = person(given = "Lars", family = "Fritsche"),
+  year = "2026",
+  note = paste("R package version", package_version),
+  url = "https://github.com/FritscheLab/phewasFlow",
+  header = paste(
+    "If you use phewasFlow in research, please cite the software",
+    "and report the version used."
+  )
+)

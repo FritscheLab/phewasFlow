@@ -19,7 +19,7 @@ Description: Defines explicit, validated specifications for bidirectional
     failed associations; applies family-wide multiple-testing correction;
     supports deterministic local and sharded execution; and provides matched
     model contrasts, concordance summaries, and publication-ready graphics.
-License: file LICENSE
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
