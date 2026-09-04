@@ -1,0 +1,363 @@
+---
+title: "Run a PheWAS with your data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Run a PheWAS with your data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This guide starts with an analysis-ready participant table and ends with a
+result table plus Manhattan and volcano plots. An analysis-ready phenotype
+already has its case, control, timing, and exclusion rules applied. For
+example, a binary phecode column should contain `1` for cases, `0` for
+controls, and `NA` when the phenotype is unavailable.
+
+## Choose the analysis direction
+
+`phewasFlow` supports two common questions:
+
+| Question | `direction` | Fixed variable (`anchor`) | Scanned phenotypes |
+|---|---|---|---|
+| Is one PRS, exposure, or biomarker associated with many outcomes? | `phenotypes_as_outcomes` | Predictor | Outcomes |
+| Are many diagnoses or traits associated with one clinical endpoint? | `phenotypes_as_predictors` | Outcome | Predictors |
+
+One configuration is one multiple-testing family. Use a separate
+`analysis_id` and output directory for each PRS, exposure, or fixed clinical
+endpoint.
+
+## Prepare the participant table
+
+The model input is a data frame with one row per participant. It must contain
+the anchor, all covariates, every phenotype named in the phenotype metadata,
+and any declared offset or exclusion columns. A participant ID is recommended
+for joining and checking records, but it is not included in the regression
+model.
+
+For a PRS-to-phecode analysis, the table might look like this:
+
+| IID | prs | age | sex | PH_001 | PH_002 |
+|---|---:|---:|---|---:|---:|
+| P001 | -0.42 | 54 | female | 0 | 1 |
+| P002 | 0.18 | 61 | male | 1 | 0 |
+| P003 | 0.73 | 47 | female | NA | 0 |
+
+Use these representations:
+
+| Variable | Representation |
+|---|---|
+| Numeric predictor or continuous outcome | Finite numeric values |
+| Binary variable | No more than two observed values; identify the intended reference value |
+| Count outcome | Nonnegative integers |
+| Ordinal variable | Values matching the declared ordered levels exactly |
+| Covariate | Numeric, logical, or factor |
+| Count offset | The finite log of a positive exposure value |
+
+Convert missing-value codes such as `-9` or `999` to `NA`. Do not convert a
+missing phenotype to a control. Missing anchor or covariate values remove the
+participant from the common base cohort; phenotype missingness is handled
+separately for each association.
+
+RDS is the easiest input format when a covariate is categorical because it
+preserves factor levels. With CSV or TSV input, encode a categorical covariate
+as K-1 numeric indicator columns and document the omitted reference group.
+
+If the variables are stored in separate files, join them to an explicit sample
+list before saving the analysis table:
+
+```{r assemble-data, eval=FALSE}
+library(data.table)
+library(phewasFlow)
+
+sample <- fread("source/sample.tsv", colClasses = c(IID = "character"))
+phenotypes <- fread(
+  "source/phenotypes.tsv", colClasses = c(IID = "character")
+)
+anchors <- fread("source/anchors.tsv", colClasses = c(IID = "character"))
+covariates <- fread(
+  "source/covariates.tsv", colClasses = c(IID = "character")
+)
+
+covariates[, sex := factor(sex, levels = c("female", "male"))]
+
+analysis <- assemble_phewas_data(
+  sample = sample,
+  phenotypes = phenotypes,
+  anchors = anchors,
+  covariates = covariates,
+  id = "IID"
+)
+
+print(attr(analysis, "join_report"))
+stopifnot(!anyDuplicated(analysis$IID))
+
+dir.create("inputs", showWarnings = FALSE)
+saveRDS(analysis, "inputs/analysis.rds", version = 3)
+```
+
+`assemble_phewas_data()` requires one nonmissing, unique ID per source table.
+Its join report shows records that did not match the sample list. Review those
+counts before fitting models.
+
+## Prepare phenotype metadata
+
+The metadata file has one row per scanned phenotype. `phenotype` must exactly
+match a column in the participant table.
+
+These columns are always required:
+
+| Column | Meaning |
+|---|---|
+| `phenotype` | Phenotype identifier and participant-table column name |
+| `description` | Readable phenotype label |
+| `group` | Clinical or phenotype group shown in the plot |
+| `groupnum` | Numeric group order |
+| `color` | Valid R color for the group |
+
+`variable_type` may be `numeric`, `binary`, `count`, or `ordinal`. If the
+column or a row value is missing, `NA`, or blank, that scanned phenotype
+defaults to `binary`.
+
+Every row in one `group` must use the same `groupnum` and `color`, and each
+group must have its own `groupnum`.
+
+When phenotypes are outcomes, `outcome_type` is still required for every row;
+it is not inferred from `variable_type`:
+
+| `variable_type` | `outcome_type` | Model |
+|---|---|---|
+| `numeric` | `continuous` | Linear regression |
+| `binary` | `binary` | Firth logistic regression |
+| `count` | `count` | Negative-binomial regression |
+| `ordinal` | `ordinal` | Proportional-odds ordinal regression |
+
+Some variable types need additional columns:
+
+| Column | When needed | Value |
+|---|---|---|
+| `reference` | Binary phenotype | Reference value; missing, `NA`, or blank defaults to character `0` |
+| `levels` | Ordinal phenotype | Ordered values separated by `|`, such as `mild|moderate|severe` |
+| `scores` | Optional for an ordinal predictor | Increasing scores separated by `|` |
+| `offset` | Optional for a count outcome | Name of an already-log-transformed offset column |
+
+Example forward metadata:
+
+```text
+phenotype  description          group           groupnum  color    variable_type  outcome_type  reference  levels  scores  offset
+PH_001     Type 2 diabetes      Endocrine       1         #2563EB  binary         binary        0          NA      NA      NA
+PH_002     C-reactive protein   Measurements    2         #059669  numeric        continuous    NA         NA      NA      NA
+```
+
+Use tab-separated fields in the actual file. For a
+`phenotypes_as_predictors` analysis, omit `outcome_type`; the fixed outcome type
+is declared in the YAML configuration. Scanned predictors may be numeric,
+binary, or ordinal. Declare `variable_type` and `reference` explicitly whenever
+the binary defaults do not describe a scanned phenotype.
+
+## Configure the analysis
+
+Copy `analysis-forward.yml` from `inst/examples/real-data/` and edit its paths
+and variable names. Relative paths are resolved from the directory containing
+the YAML file.
+
+This is a one-shard PRS-to-phenome configuration:
+
+```yaml
+schema_version: 1
+inputs:
+  data: inputs/analysis.rds
+  phenotype_metadata: phenotype-metadata-outcomes.tsv
+analysis:
+  analysis_id: my_prs_to_phenome_v1
+  direction: phenotypes_as_outcomes
+  anchor: prs
+  anchor_type: numeric
+  anchor_transform: zscore
+  covariates: [age, sex]
+  fdr_threshold: 0.05
+  eligibility:
+    min_n: 100
+    min_cases: 10
+    min_controls: 10
+    min_outcome_levels: 3
+execution:
+  shards: 1
+  backend: sequential
+  workers: 1
+output:
+  directory: phewasflow-output/prs-to-phenome
+plot:
+  # Creates phewas.png, phewas.pdf, phewas-volcano.png, and
+  # phewas-volcano.pdf.
+  output: phewasflow-output/prs-to-phenome/phewas.png
+  significance: bonferroni
+  group_display: legend
+  label: []
+  highlight: []
+  width: 10
+  height: 6
+  dpi: 300
+```
+
+`anchor_transform: zscore` reports associations per standard deviation of a
+numeric predictor. The mean and standard deviation are calculated once in the
+post-exclusion cohort with complete anchor and covariate data.
+
+`min_cases` and `min_controls` set the minimum non-reference and reference
+counts for each scanned binary phenotype. The same thresholds therefore apply
+when binary phenotypes are outcomes and when they are predictors. If the fixed
+outcome is binary, its event and nonevent counts must also meet these minima.
+
+For a phenotype-to-endpoint analysis, start from `analysis-reverse.yml`. The
+important declarations are:
+
+```yaml
+inputs:
+  phenotype_metadata: phenotype-metadata-predictors.tsv
+analysis:
+  analysis_id: diagnoses_to_endpoint_v1
+  direction: phenotypes_as_predictors
+  anchor: endpoint_continuous
+  anchor_type: numeric
+  outcome_type: continuous
+  anchor_transform: none
+```
+
+Keep the covariates, eligibility thresholds, execution, output, and plot
+sections from the forward example. A fixed binary anchor always requires an
+explicit `anchor_reference`; the scanned-phenotype default does not apply. For
+a binary fixed outcome, set `outcome_type: binary` and provide
+`anchor_reference`; `anchor_type: binary` may also be supplied explicitly. An
+ordinal fixed outcome requires ordered `anchor_levels`. A count fixed outcome
+may name an already-log-transformed `offset` column.
+
+## Run locally
+
+Install `phewasFlow`, then run the provided project runner from the directory
+containing the configuration:
+
+```{bash, eval=FALSE}
+Rscript run-local.R analysis-forward.yml
+```
+
+The runner validates the configuration and columns, runs every configured
+shard, combines the association results, applies BH and Bonferroni correction,
+and creates Manhattan and volcano plots in PNG and PDF. Validation cannot
+detect every value problem or model convergence issue, so review association
+statuses after the run.
+
+To verify the setup with the included example first:
+
+```{bash, eval=FALSE}
+Rscript inst/examples/real-data/create-demo-project.R my-phewas
+cd my-phewas
+Rscript run-local.R analysis-forward.yml
+```
+
+The generated participant data are simulated. Replace `inputs/analysis.rds`,
+the phenotype metadata, and the YAML settings before using the project for an
+analysis.
+
+## Review the results
+
+When at least one model has a finite p-value, the output directory contains:
+
+```text
+results.rds
+results.tsv
+phewas.png
+phewas.pdf
+phewas-volcano.png
+phewas-volcano.pdf
+```
+
+`plot.output` supplies the filename stem, even when it ends in `.png` or
+`.pdf`. The plot command always writes both formats. Bonferroni is the default
+displayed threshold; set `plot.significance` to `bh` or `none` only when that
+matches the planned figure.
+
+The volcano x-axis is the fitted coefficient on the model or link scale. It is
+not the transformed `native_effect`. Different effect measures are separated
+into panels, and coefficient magnitudes should not be compared across panels
+or across variables measured in different units.
+
+The RDS file preserves the full specification and run information. The TSV is
+convenient for review in other software. Load the result and check every model
+status:
+
+```{r review-results, eval=FALSE}
+library(phewasFlow)
+
+result <- read_phewas_bundle("phewasflow-output/prs-to-phenome")
+table(result$status, useNA = "ifany")
+
+subset(
+  result,
+  status != "ok",
+  select = c(phenotype, status, reason_code, message, warnings)
+)
+
+subset(
+  result,
+  status == "ok",
+  select = c(
+    phenotype, description, n_complete, n_event, n_nonevent,
+    effective_formula, dropped_invariant_covariates,
+    native_effect, native_conf_low, native_conf_high,
+    p_value_text, q_value_text, fdr_significant
+  )
+)
+```
+
+Each requested phenotype has one of three statuses:
+
+| Status | Meaning |
+|---|---|
+| `ok` | Model completed and entered multiple-testing correction |
+| `skipped` | Data did not meet an eligibility or estimability requirement |
+| `error` | Data validation, model fitting, or convergence failed |
+
+Check `reason_code`, `message`, and `warnings` for every non-`ok` row. Also
+review `n_base`, `n_complete`, case/control or level counts, reference values,
+and `testing_family_size` against the analysis plan.
+
+`formula` and `covariates` record the requested model. If a covariate is
+constant in one phenotype's complete-case sample, it cannot contribute to
+that model and is omitted automatically. `effective_formula`,
+`effective_covariates`, and `dropped_invariant_covariates` record exactly what
+was fitted. Other collinearity remains a `rank_deficient` skip.
+
+`estimate` is on the fitted model's link scale. `native_effect` is easier to
+interpret:
+
+| Outcome | `native_effect` |
+|---|---|
+| Continuous | Regression coefficient or adjusted mean difference |
+| Binary | Odds ratio |
+| Count | Incidence-rate ratio |
+| Ordinal | Common odds ratio |
+
+The binary reference and ordinal level order determine the effect direction.
+For very small p-values, use `p_value_text`, `q_value_text`, or
+`neg_log10_p`; the ordinary numeric p-value can reach the floating-point limit.
+
+When changing the participants, phenotypes, model, or thresholds, use a new
+`analysis_id` and output directory. For larger local or cluster runs, continue
+with `vignette("large-runs", package = "phewasFlow")` after this one-shard
+workflow succeeds.
+
+## Common problems
+
+| Message or symptom | What to check |
+|---|---|
+| Missing declared column | Match YAML and metadata names exactly to participant-table columns |
+| Character covariate | Save a factor in RDS or use K-1 numeric indicator columns |
+| `reference_not_observed` | Match the declared binary reference to the encoded value |
+| `undeclared_ordinal_level` | Match spelling, capitalization, and order to `levels` |
+| `insufficient_cases` or `insufficient_controls` | Review phenotype coding, missingness, and eligibility thresholds |
+| `rank_deficient` | Check for duplicated or collinear covariates; invariant covariates are omitted automatically |
+| No plot | Confirm that at least one association has `status == "ok"` and a finite p-value |

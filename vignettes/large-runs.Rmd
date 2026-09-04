@@ -1,0 +1,206 @@
+---
+title: "Scale a successful PheWAS"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Scale a successful PheWAS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Scale an analysis only after it succeeds on simulated data and on a small,
+representative subset of the intended phenotypes. Sharding changes where the
+models run; it does not change the model formula, eligible participants, or
+multiple-testing family.
+
+Before scaling, confirm that:
+
+- input validation succeeds;
+- the anchor, covariates, references, and phenotype coding match the analysis
+  plan;
+- representative binary, continuous, count, or ordinal models have the
+  expected sample counts and effect direction; and
+- every `skipped` or `error` result in the small run is understood.
+
+## Local parallel execution
+
+The examples below create their own data and analysis specification.
+
+```{r setup-example}
+library(phewasFlow)
+
+example <- phewas_example_data(n = 300)
+data <- example$data
+spec <- phewas_spec(
+  analysis_id = "parallel_example",
+  anchor = "pgs",
+  direction = "phenotypes_as_outcomes",
+  phenotypes = example$forward_metadata,
+  covariates = c("age", "sex"),
+  anchor_type = "numeric",
+  anchor_transform = "zscore",
+  eligibility = list(
+    min_n = 100L,
+    min_cases = 10L,
+    min_controls = 10L,
+    min_outcome_levels = 3L
+  ),
+  fdr_threshold = 0.05
+)
+```
+
+Use the sequential backend first. On a workstation, the PSOCK backend can fit
+phenotypes in parallel:
+
+```{r local, eval=FALSE}
+sequential <- run_phewas(data, spec, backend = "sequential")
+parallel <- run_phewas(data, spec, backend = "psock", workers = 4)
+```
+
+Both calls return rows in the same phenotype order. Start with a small worker
+count and increase it only after checking memory use.
+
+## File-based sharding
+
+For a restartable run, put the analysis-ready participant table, phenotype
+metadata, and model settings in one YAML configuration. The runnable demo in
+`inst/examples/real-data/` provides a filled example. The general reference is
+`inst/examples/config/phewasflow.yml`.
+
+The command-line workflow has five stages:
+
+```{bash, eval=FALSE}
+phewasflow validate --config analysis.yml
+phewasflow manifest --config analysis.yml
+phewasflow run-shard --config analysis.yml --shard-id 1
+phewasflow combine --config analysis.yml
+phewasflow plot --config analysis.yml
+```
+
+`validate` checks the configuration and input data. `manifest` records the
+planned phenotype order, shard assignment, input hashes, model fingerprint,
+and package version. Run every shard ID from `1` through
+`execution.shards`; they may run concurrently.
+
+Each shard writes one atomic RDS artifact under
+`<output.directory>/.phewasflow/shards/`. The shard results do not receive
+separate FDR correction. After every shard is present, `combine` verifies the
+exact set and applies BH and Bonferroni correction once across all successful
+models.
+
+## Submit a SLURM array
+
+The package includes `phewasflow_array.sbatch` and
+`phewasflow_finish.sbatch` in `inst/examples/slurm/`. The commands below
+assume that the installed R environment is active and the package's `exec/`
+directory is in `PATH`:
+
+```{bash, eval=FALSE}
+export PATH="$PWD/exec:$PATH"
+export PHEWASFLOW_CONFIG=analysis.yml
+
+phewasflow validate --config "$PHEWASFLOW_CONFIG"
+phewasflow manifest --config "$PHEWASFLOW_CONFIG"
+```
+
+Set `N_SHARDS` to the `execution.shards` value in the YAML. The submitted
+array range must match it exactly.
+
+```{bash, eval=FALSE}
+N_SHARDS=10
+mkdir -p logs
+
+ARRAY_JOB_ID=$(sbatch --parsable \
+  --array="1-${N_SHARDS}" \
+  --output="logs/%x-%A_%a.out" \
+  --error="logs/%x-%A_%a.err" \
+  --export=ALL,PHEWASFLOW_CONFIG="$PHEWASFLOW_CONFIG" \
+  inst/examples/slurm/phewasflow_array.sbatch)
+
+sbatch \
+  --dependency="afterok:${ARRAY_JOB_ID}" \
+  --output="logs/%x-%j.out" \
+  --error="logs/%x-%j.err" \
+  --export=ALL,PHEWASFLOW_CONFIG="$PHEWASFLOW_CONFIG" \
+  inst/examples/slurm/phewasflow_finish.sbatch
+```
+
+The array task ID selects the shard. The `afterok` dependency starts the
+finish job only when every task exits successfully. Adapt the CPU, memory, and
+time directives in the templates to the data size, model types, and local
+scheduler policy.
+
+Every array task reads the analysis inputs, so memory should be sized for the
+full participant table, not just the phenotypes assigned to one shard. More
+shards create shorter tasks and more scheduling overhead; they do not reduce
+the memory needed to load the inputs. Avoid combining a large worker count
+inside each task with a large array until resource use has been measured.
+
+## Restart without mixing runs
+
+An interrupted run does not need to start over. Resubmit the same array with
+the same YAML. A valid existing shard is fingerprint-checked and reused.
+Missing shards run normally, and mismatched artifacts stop with a specific
+error.
+
+`combine` also checks for missing or unexpected shard files and refuses to
+mix results from different specifications. If existing combined results match
+the validated shards, they are reused and the portable TSV is recreated.
+
+Use a new `analysis_id` and output directory whenever any scientific or
+computational input changes, including:
+
+- participant data or phenotype metadata;
+- the anchor, covariates, exclusions, references, or thresholds;
+- the shard count; or
+- the installed package version.
+
+Keeping each run in its own output directory is simpler and safer than trying
+to replace selected artifacts from an older run.
+
+## Review the completed run
+
+The configured output directory contains:
+
+```text
+results.rds
+results.tsv
+phewas.png
+phewas.pdf
+phewas-volcano.png
+phewas-volcano.pdf
+.phewasflow/
+  manifest.tsv
+  shards/
+```
+
+`plot.output` sets the plot stem. One `phewasflow plot` command writes the
+Manhattan and volcano plots in both PNG and PDF; the names above result from a
+stem of `phewas`. The configured significance line is Bonferroni by default.
+Review the combined result rather than individual shard files:
+
+```{r review, eval=FALSE}
+result <- read_phewas_bundle("phewasflow-output")
+
+table(result$status, useNA = "ifany")
+subset(
+  result,
+  status != "ok",
+  select = c(
+    phenotype, status, reason_code, message, warnings,
+    n_complete, n_event, n_nonevent
+  )
+)
+```
+
+`ok` rows form the multiple-testing family. A `skipped` row records an
+eligibility or estimability decision; an `error` row records a validation,
+fitting, or convergence failure. Check these statuses, sample counts,
+`testing_family_size`, effect estimates, and adjusted p-values before
+interpreting or sharing the analysis.
+
+For a copyable submission sequence and log layout, see
+`inst/examples/slurm/README.md`.

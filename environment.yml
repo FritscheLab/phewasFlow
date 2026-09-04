@@ -1,0 +1,15 @@
+name: phewasflow
+channels:
+  - conda-forge
+dependencies:
+  - "r-base>=4.4"
+  - r-data.table
+  - r-digest
+  - "r-ggplot2>=4.0"
+  - r-ggrepel
+  - r-jsonlite
+  - r-logistf
+  - r-mass
+  - r-optparse
+  - r-ordinal
+  - r-yaml

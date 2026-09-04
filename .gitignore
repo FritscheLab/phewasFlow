@@ -1,0 +1,35 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rcheck/
+docs/
+coverage.xml
+inst/doc/
+.DS_Store
+.vscode/
+.idea/
+.codex/
+.agents/
+*.tar.gz
+Rplots.pdf
+
+# Local configuration and credentials
+.env
+.env.*
+.Renviron
+.Renviron.*
+.Rprofile
+*.pem
+*.key
+
+# Private inputs and generated artifacts
+/inputs/
+/data-raw/
+/private/
+/local/
+/cache/
+/output/
+/phewasflow-output/
+/*-workflows/
+/demo-phewas/

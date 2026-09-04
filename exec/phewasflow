@@ -1,0 +1,14 @@
+#!/usr/bin/env Rscript
+
+status <- tryCatch(
+  {
+    suppressPackageStartupMessages(library(phewasFlow))
+    phewasflow_cli(commandArgs(trailingOnly = TRUE))
+    0L
+  },
+  error = function(error) {
+    message("phewasflow: ", conditionMessage(error))
+    1L
+  }
+)
+quit(save = "no", status = status, runLast = FALSE)

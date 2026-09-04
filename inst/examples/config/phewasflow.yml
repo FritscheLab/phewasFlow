@@ -1,0 +1,51 @@
+# Generic configuration reference. For a runnable, filled example and a
+# bring-your-own-data tutorial, see ../real-data/README.md.
+# Copy this file beside your inputs and replace both placeholder paths.
+schema_version: 1
+
+inputs:
+  # Analysis-ready data: one row per participant, one column per variable.
+  data: REPLACE_WITH_PATH_TO_ANALYSIS_DATA.tsv
+  # One row per scanned phenotype. See the package vignette for the schema.
+  phenotype_metadata: REPLACE_WITH_PATH_TO_PHENOTYPE_METADATA.tsv
+
+analysis:
+  analysis_id: example_prs_to_phenome
+  direction: phenotypes_as_outcomes
+  anchor: example_prs
+  anchor_type: numeric
+  anchor_transform: zscore
+  # TSV categorical covariates must be explicit numeric K-1 dummy columns.
+  # Here sex_male is 0 for female (the omitted reference) and 1 for male.
+  covariates: [age, sex_male, PC1, PC2]
+  # Optional: exclude everyone coded 1 in phenotype X999 before complete cases
+  # or z-scoring:
+  # exclusion_column: X999
+  # exclusion_values: [1]
+  fdr_threshold: 0.05
+  eligibility:
+    min_n: 100
+    min_cases: 10
+    min_controls: 10
+    min_outcome_levels: 3
+
+execution:
+  shards: 10
+  backend: sequential
+  workers: 1
+
+output:
+  directory: ./phewasflow-output
+
+plot:
+  # One plot command writes phewas.png, phewas.pdf, phewas-volcano.png,
+  # and phewas-volcano.pdf.
+  output: ./phewasflow-output/phewas.png
+  significance: bonferroni
+  # Use the same ordered phenotype-group legend in both standard plots.
+  group_display: legend
+  label: []
+  highlight: []
+  width: 10
+  height: 6
+  dpi: 300

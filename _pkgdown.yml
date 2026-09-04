@@ -1,0 +1,57 @@
+url: https://fritschelab.github.io/phewasFlow/
+template:
+  bootstrap: 5
+  bslib:
+    primary: "#00274c"
+    secondary: "#006f78"
+    link-color: "#00545b"
+    body-color: "#17212b"
+    navbar-bg: "#00274c"
+    navbar-dark-color: "#ffffff"
+    navbar-dark-hover-color: "#ffcb05"
+navbar:
+  bg: primary
+  type: dark
+  structure:
+    left: [intro, reference, articles]
+    right: [lab, search, github]
+  components:
+    lab:
+      text: Fritsche Lab
+      href: https://fritschelab.github.io
+articles:
+  - title: Workflows
+    contents:
+      - real-data-workflow
+      - two-directions
+      - comparisons-and-plots
+      - large-runs
+reference:
+  - title: Data and specifications
+    contents:
+      - assemble_phewas_data
+      - phewas_spec
+      - validate_phewas_spec
+      - phewas_example_data
+  - title: Association scans
+    contents:
+      - run_phewas
+      - run_phewas_contrast
+  - title: Comparisons
+    contents:
+      - compare_phewas
+  - title: Graphics
+    contents:
+      - starts_with("plot_phewas")
+      - save_phewas_plot
+  - title: Portable execution
+    contents:
+      - read_phewasflow_config
+      - validate_phewasflow_config
+      - config_to_phewas_spec
+      - create_phewas_manifest
+      - run_phewas_shard
+      - combine_phewas_shards
+      - write_phewas_bundle
+      - read_phewas_bundle
+      - phewasflow_cli

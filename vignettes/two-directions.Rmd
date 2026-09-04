@@ -1,0 +1,103 @@
+---
+title: "PheWAS in both directions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PheWAS in both directions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Choose the scan direction from the scientific question:
+
+| Question | Direction | Repeated model |
+|---|---|---|
+| Is one PRS, exposure, or biomarker associated with many phenotypes? | `phenotypes_as_outcomes` | Each phenotype is the outcome; the anchor is the predictor |
+| Is each phenotype associated with one clinical endpoint? | `phenotypes_as_predictors` | The clinical endpoint is the outcome; each phenotype is a predictor |
+
+The examples below use synthetic participants so they can run without access
+to clinical data.
+
+```{r data}
+library(phewasFlow)
+
+example <- phewas_example_data(n = 300)
+data <- assemble_phewas_data(
+  example$sample, example$phenotypes, example$anchors,
+  example$covariates, id = "id"
+)
+
+eligibility <- list(
+  min_n = 100L,
+  min_cases = 10L,
+  min_controls = 10L,
+  min_outcome_levels = 3L
+)
+```
+
+## PRS or PGS as the predictor
+
+The phenotype metadata explicitly declares binary, continuous, count, and
+ordinal outcomes. The anchor is standardized once on the common base cohort,
+before phenotype-specific missingness is considered.
+
+```{r forward}
+forward_spec <- phewas_spec(
+  analysis_id = "pgs_to_phenome",
+  anchor = "pgs",
+  direction = "phenotypes_as_outcomes",
+  phenotypes = example$forward_metadata,
+  covariates = c("age", "sex"),
+  anchor_type = "numeric",
+  anchor_transform = "zscore",
+  eligibility = eligibility,
+  fdr_threshold = 0.05
+)
+
+forward <- run_phewas(data, forward_spec)
+forward[, .(phenotype, description, engine, estimate, native_effect, status)]
+```
+
+Binary and ordinal effects are odds ratios, count effects are incidence-rate
+ratios, and continuous effects remain regression coefficients. The `estimate`
+column always contains the coefficient on the model's link scale.
+
+For a count outcome with unequal exposure time, name a column containing the
+already-log-transformed exposure in that phenotype row's `offset` field. Leave
+`offset` empty when no offset belongs in the model.
+
+## Phenotypes as predictors
+
+This example asks whether each phenotype is associated with a continuous
+clinical endpoint. The endpoint stays fixed while `phewasFlow` changes the
+phenotype predictor.
+
+```{r reverse}
+reverse_spec <- phewas_spec(
+  analysis_id = "phenome_to_continuous_endpoint",
+  anchor = "endpoint_continuous",
+  direction = "phenotypes_as_predictors",
+  phenotypes = example$reverse_metadata,
+  covariates = c("age", "sex"),
+  outcome_type = "continuous",
+  anchor_type = "numeric",
+  eligibility = eligibility,
+  fdr_threshold = 0.05
+)
+
+reverse <- run_phewas(data, reverse_spec)
+reverse[, .(phenotype, description, estimate, native_effect, status)]
+```
+
+Missing phenotype values are excluded association by association. They are
+never converted to a binary reference group.
+
+For a binary clinical endpoint, set `outcome_type = "binary"`,
+`anchor_type = "binary"`, and give its reference value with
+`anchor_reference`. Count and ordinal endpoints use `outcome_type = "count"`
+or `"ordinal"`; ordinal endpoints also require `anchor_levels` in their true
+order. Use a separate `analysis_id` and result directory for each clinical
+endpoint because each one has its own multiple-testing correction.

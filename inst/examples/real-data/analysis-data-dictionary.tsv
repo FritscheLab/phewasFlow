@@ -1,0 +1,12 @@
+column	role	representation	example	required	constraints	notes
+id	participant identifier	character	person_0001	recommended	Unique and nonmissing	Not a model term; an id_column attribute from assemble_phewas_data is used for fingerprints, otherwise row positions are used
+pgs	forward anchor	numeric	-0.42	forward	Finite numeric	Standardized once when anchor_transform is zscore
+endpoint_continuous	reverse fixed outcome	numeric	1.27	reverse	Finite numeric	Replace with the declared fixed endpoint for a reverse scan
+age	covariate	numeric	58.2	yes	Finite where analyzed	Missing anchor or covariate values leave the common base cohort
+sex	covariate	factor	female	yes	Explicit factor levels	Use RDS to preserve factors; tabular inputs need K-1 numeric dummies with a documented omitted reference
+pheno_binary	scanned phenotype	binary	0	yes	At most two observed values	Missing, NA, or blank variable_type defaults to binary; missing, NA, or blank reference defaults to character 0
+pheno_continuous	scanned phenotype	numeric	24.8	yes	Finite numeric values	Missingness is handled association by association
+pheno_count	scanned phenotype	count	3	yes	Finite nonnegative integers	An optional offset column must already be log transformed
+pheno_ordinal	scanned phenotype	ordered factor	medium	yes	Values exactly match declared levels	Level order is case sensitive
+log_followup	count offset	numeric	4.605	when declared	Finite log of a strictly positive exposure	Illustrative and not in the demo input; metadata or YAML names this already-log-transformed column
+exclude_flag	exclusion marker	integer	0	optional	Values and YAML exclusions use matching types	Illustrative and not in the demo input; missing exclusion markers are retained

@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "Please cite phewasFlow and record the version used in your analysis."
+type: software
+title: "phewasFlow: Reproducible Bidirectional Phenome-Wide Association Studies"
+authors:
+  - family-names: Fritsche
+    given-names: Lars
+    affiliation: University of Michigan
+version: 0.1.0
+repository-code: https://github.com/FritscheLab/phewasFlow
+url: https://fritschelab.github.io
+abstract: >-
+  An R package for explicit, reproducible phenome-wide association studies in
+  both directions, with local and sharded execution and publication-ready plots.

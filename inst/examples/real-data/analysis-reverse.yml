@@ -1,0 +1,39 @@
+schema_version: 1
+
+inputs:
+  data: inputs/analysis.rds
+  phenotype_metadata: phenotype-metadata-predictors.tsv
+
+analysis:
+  analysis_id: demo_phenome_to_continuous_endpoint
+  direction: phenotypes_as_predictors
+  anchor: endpoint_continuous
+  anchor_type: numeric
+  outcome_type: continuous
+  anchor_transform: none
+  covariates: [age, sex]
+  fdr_threshold: 0.05
+  eligibility:
+    min_n: 100
+    min_cases: 10
+    min_controls: 10
+    min_outcome_levels: 3
+
+execution:
+  shards: 2
+  backend: sequential
+  workers: 1
+
+output:
+  directory: phewasflow-output/reverse-continuous
+
+plot:
+  # Writes phewas.png, phewas.pdf, phewas-volcano.png, and phewas-volcano.pdf.
+  output: phewasflow-output/reverse-continuous/phewas.png
+  significance: bonferroni
+  group_display: legend
+  label: []
+  highlight: []
+  width: 10
+  height: 6
+  dpi: 300

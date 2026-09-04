@@ -1,0 +1,5 @@
+phenotype	description	group	groupnum	color	variable_type	outcome_type	reference	levels	scores	offset
+pheno_binary	Binary phenotype	Diagnoses	1	#3B82F6	binary	binary	0	NA	NA	NA
+pheno_continuous	Continuous phenotype	Measurements	2	#10B981	numeric	continuous	NA	NA	NA	NA
+pheno_count	Count phenotype	Utilization	3	#F59E0B	count	count	NA	NA	NA	NA
+pheno_ordinal	Ordinal phenotype	Symptoms	4	#8B5CF6	ordinal	ordinal	NA	low|medium|high	NA	NA
