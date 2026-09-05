@@ -118,7 +118,7 @@ Phenotypes should already implement the intended observation window,
 case/control definition, and exclusions; `phewasFlow` fits models but does not
 derive phenotypes from raw clinical codes.
 
-The [real-data workflow vignette source](vignettes/real-data-workflow.Rmd) gives the complete
+The [real-data workflow](articles/real-data-workflow.html) gives the complete
 participant-table and metadata requirements with working examples.
 
 ## Validate and run
@@ -164,10 +164,10 @@ count, or package version changes.
 
 ## Learn more
 
-- [Run a PheWAS with your data (vignette source)](vignettes/real-data-workflow.Rmd)
-- [PheWAS in both directions (vignette source)](vignettes/two-directions.Rmd)
-- [Comparisons and plots (vignette source)](vignettes/comparisons-and-plots.Rmd)
-- [Scale a successful PheWAS (vignette source)](vignettes/large-runs.Rmd)
+- [Run a PheWAS with your data](articles/real-data-workflow.html)
+- [PheWAS in both directions](articles/two-directions.html)
+- [Comparisons and plots](articles/comparisons-and-plots.html)
+- [Scale a successful PheWAS](articles/large-runs.html)
 - [Run a sharded PheWAS with SLURM](inst/examples/slurm/)
 
 ## Development
@@ -192,7 +192,7 @@ documentation build and release procedure.
 ## Support
 
 Maintained by Lars Fritsche. Report reproducible problems through
-[GitHub issues](issues), using synthetic
+[GitHub issues](https://github.com/FritscheLab/phewasFlow/issues), using synthetic
 examples and sanitized logs. Keep participant data, credentials, and local
 analysis configuration outside this repository. Even aggregate results and
 provenance files require review before sharing.
