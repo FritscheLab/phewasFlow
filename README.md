@@ -119,7 +119,8 @@ case/control definition, and exclusions; `phewasFlow` fits models but does not
 derive phenotypes from raw clinical codes.
 
 The [real-data workflow vignette source](vignettes/real-data-workflow.Rmd) documents
-the participant-table and metadata requirements with source examples.
+the participant-table and metadata requirements with source examples; for the
+formatted walkthrough, see the [rendered article](https://fritschelab.github.io/phewasFlow/articles/real-data-workflow.html).
 
 ## Validate and run
 
