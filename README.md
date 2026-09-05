@@ -164,10 +164,10 @@ count, or package version changes.
 
 ## Learn more
 
-- [Run a PheWAS with your data](articles/real-data-workflow.html)
-- [PheWAS in both directions](articles/two-directions.html)
-- [Comparisons and plots](articles/comparisons-and-plots.html)
-- [Scale a successful PheWAS](articles/large-runs.html)
+- [Run a PheWAS with your data (vignette source)](vignettes/real-data-workflow.Rmd)
+- [PheWAS in both directions (vignette source)](vignettes/two-directions.Rmd)
+- [Comparisons and plots (vignette source)](vignettes/comparisons-and-plots.Rmd)
+- [Scale a successful PheWAS (vignette source)](vignettes/large-runs.Rmd)
 - [Run a sharded PheWAS with SLURM](inst/examples/slurm/)
 
 ## Development
