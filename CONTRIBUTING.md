@@ -5,7 +5,7 @@ Update deterministic tests and documentation when model behavior or result
 fields change.
 
 Use the installation and dependency commands in the
-[README](https://github.com/FritscheLab/phewasFlow#development), reinstall the
+[README](README.md#development), reinstall the
 current source so parallel workers use it, then run:
 
 ```r
