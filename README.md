@@ -32,7 +32,7 @@ phewasflow --help
 ```
 
 The R functions work without adding the command-line wrapper to `PATH`.
-For an optional conda environment using [environment.yml](https://github.com/FritscheLab/phewasFlow/blob/main/environment.yml):
+For an optional conda environment using [environment.yml](environment.yml):
 
 ```bash
 mamba env create --file environment.yml
@@ -118,7 +118,7 @@ Phenotypes should already implement the intended observation window,
 case/control definition, and exclusions; `phewasFlow` fits models but does not
 derive phenotypes from raw clinical codes.
 
-The [real-data workflow](https://fritschelab.github.io/phewasFlow/articles/real-data-workflow.html) gives the complete
+The [real-data workflow](vignettes/real-data-workflow.Rmd) gives the complete
 participant-table and metadata requirements with working examples.
 
 ## Validate and run
@@ -135,7 +135,7 @@ For a modest analysis, the generated runner performs every stage:
 Rscript run-local.R analysis-forward.yml
 ```
 
-For larger scans, use the [SLURM templates](https://github.com/FritscheLab/phewasFlow/tree/main/inst/examples/slurm) after
+For larger scans, use the [SLURM templates](inst/examples/slurm/) after
 the same analysis succeeds locally on a representative phenotype set.
 
 ## Review the results
@@ -164,11 +164,11 @@ count, or package version changes.
 
 ## Learn more
 
-- [Run a PheWAS with your data](https://fritschelab.github.io/phewasFlow/articles/real-data-workflow.html)
-- [PheWAS in both directions](https://fritschelab.github.io/phewasFlow/articles/two-directions.html)
-- [Comparisons and plots](https://fritschelab.github.io/phewasFlow/articles/comparisons-and-plots.html)
-- [Scale a successful PheWAS](https://fritschelab.github.io/phewasFlow/articles/large-runs.html)
-- [Run a sharded PheWAS with SLURM](https://github.com/FritscheLab/phewasFlow/tree/main/inst/examples/slurm)
+- [Run a PheWAS with your data](vignettes/real-data-workflow.Rmd)
+- [PheWAS in both directions](vignettes/two-directions.Rmd)
+- [Comparisons and plots](vignettes/comparisons-and-plots.Rmd)
+- [Scale a successful PheWAS](vignettes/large-runs.Rmd)
+- [Run a sharded PheWAS with SLURM](inst/examples/slurm/)
 
 ## Development
 
@@ -192,7 +192,7 @@ documentation build and release procedure.
 ## Support
 
 Maintained by Lars Fritsche. Report reproducible problems through
-[GitHub issues](https://github.com/FritscheLab/phewasFlow/issues), using synthetic
+[GitHub issues](issues), using synthetic
 examples and sanitized logs. Keep participant data, credentials, and local
 analysis configuration outside this repository. Even aggregate results and
 provenance files require review before sharing.
