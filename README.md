@@ -118,8 +118,8 @@ Phenotypes should already implement the intended observation window,
 case/control definition, and exclusions; `phewasFlow` fits models but does not
 derive phenotypes from raw clinical codes.
 
-The [real-data workflow vignette source](vignettes/real-data-workflow.Rmd) gives the complete
-participant-table and metadata requirements with working examples.
+The [real-data workflow vignette source](vignettes/real-data-workflow.Rmd) documents
+the participant-table and metadata requirements with source examples.
 
 ## Validate and run
 
@@ -162,12 +162,12 @@ Completed matching shards are reusable after an interrupted run. Change the
 `analysis_id` and output directory whenever the data, model, thresholds, shard
 count, or package version changes.
 
-## Learn more
+## Vignette sources
 
-- [Run a PheWAS with your data (vignette source)](vignettes/real-data-workflow.Rmd)
-- [PheWAS in both directions (vignette source)](vignettes/two-directions.Rmd)
-- [Comparisons and plots (vignette source)](vignettes/comparisons-and-plots.Rmd)
-- [Scale a successful PheWAS (vignette source)](vignettes/large-runs.Rmd)
+- [Run a PheWAS with your data](vignettes/real-data-workflow.Rmd)
+- [PheWAS in both directions](vignettes/two-directions.Rmd)
+- [Comparisons and plots](vignettes/comparisons-and-plots.Rmd)
+- [Scale a successful PheWAS](vignettes/large-runs.Rmd)
 - [Run a sharded PheWAS with SLURM](inst/examples/slurm/)
 
 ## Development
