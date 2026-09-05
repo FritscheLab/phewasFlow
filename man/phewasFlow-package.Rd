@@ -26,7 +26,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Lars Fritsche \email{larsf@umich.edu}
+\strong{Maintainer}: Lars Fritsche \email{larsf+lab@umich.edu}
 
 }
 \keyword{internal}

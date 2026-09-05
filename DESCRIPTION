@@ -5,11 +5,11 @@ Version: 0.1.0
 Authors@R: person(
     given = "Lars",
     family = "Fritsche",
-    email = "larsf@umich.edu",
+    email = "larsf+lab@umich.edu",
     role = c("aut", "cre")
   )
 Author: Lars Fritsche [aut, cre]
-Maintainer: Lars Fritsche <larsf@umich.edu>
+Maintainer: Lars Fritsche <larsf+lab@umich.edu>
 URL: https://github.com/FritscheLab/phewasFlow,
     https://fritschelab.github.io
 BugReports: https://github.com/FritscheLab/phewasFlow/issues
