@@ -118,7 +118,7 @@ Phenotypes should already implement the intended observation window,
 case/control definition, and exclusions; `phewasFlow` fits models but does not
 derive phenotypes from raw clinical codes.
 
-The [real-data workflow](articles/real-data-workflow.html) gives the complete
+The [real-data workflow vignette source](vignettes/real-data-workflow.Rmd) gives the complete
 participant-table and metadata requirements with working examples.
 
 ## Validate and run
