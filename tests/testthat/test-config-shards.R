@@ -727,6 +727,68 @@ test_that("combined results are validated and the TSV is repaired on reuse", {
   expect_identical(readLines(tsv_path, warn = FALSE), expected_tsv)
 })
 
+test_that("shard schemas accept integer and double numeric columns", {
+  artifacts <- list(
+    list(results = data.frame(df = c(1L, NA_integer_), n = c(20, 30))),
+    list(results = data.frame(df = c(2.5, NA_real_), n = c(40L, 50L)))
+  )
+
+  expect_true(phewasFlow:::.pf_validate_shard_set(artifacts))
+  expect_true(phewasFlow:::.pf_validate_shard_set(rev(artifacts)))
+})
+
+test_that("shard schemas still reject incompatible types, names, and order", {
+  reference <- list(results = data.frame(df = 1L, n = 20L))
+  for (value in list("1", TRUE, 1 + 0i, list(1L))) {
+    altered <- reference
+    altered$results$df <- value
+    expect_error(
+      phewasFlow:::.pf_validate_shard_set(list(reference, altered)),
+      "Shard result schemas are inconsistent"
+    )
+  }
+  for (columns in list("df", c("n", "df"))) {
+    altered <- list(results = reference$results[, columns, drop = FALSE])
+    expect_error(
+      phewasFlow:::.pf_validate_shard_set(list(reference, altered)),
+      "Shard result schemas are inconsistent"
+    )
+  }
+  altered <- reference
+  names(altered$results)[[1L]] <- "degrees_of_freedom"
+  expect_error(
+    phewasFlow:::.pf_validate_shard_set(list(reference, altered)),
+    "Shard result schemas are inconsistent"
+  )
+})
+
+test_that("mixed integer and double df shards combine without changing values", {
+  directory <- withr::local_tempdir()
+  fixture <- complete_shard_fixture(directory)
+  artifacts <- lapply(fixture$shards, readRDS)
+
+  for (double_shard in seq_along(artifacts)) {
+    for (index in seq_along(artifacts)) {
+      artifact <- data.table::copy(artifacts[[index]])
+      artifact$results$df <- if (index == double_shard) {
+        as.double(artifact$results$df)
+      } else {
+        as.integer(artifact$results$df)
+      }
+      saveRDS(artifact, fixture$shards[[index]], version = 3L)
+    }
+
+    result <- combine_phewas_shards(fixture$config, overwrite = TRUE)
+    expect_identical(result$df, as.double(fixture$result$df))
+    expect_equal(result, fixture$result, ignore_attr = TRUE)
+    expect_equal(read_phewas_bundle(fixture$output), result, ignore_attr = TRUE)
+    expect_equal(
+      suppressMessages(combine_phewas_shards(fixture$config)),
+      result, ignore_attr = TRUE
+    )
+  }
+})
+
 test_that("readable shard artifacts cannot hide schema or metadata drift", {
   directory <- withr::local_tempdir()
   path <- make_shard_fixture(directory)

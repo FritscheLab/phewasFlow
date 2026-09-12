@@ -251,11 +251,16 @@ create_phewas_manifest <- function(config, path = NULL, write = TRUE) {
   if (!length(artifacts)) {
     stop("No shard artifacts were supplied.", call. = FALSE)
   }
+  column_type <- function(column) {
+    type <- typeof(column)
+    # Numeric storage can vary by shard; rbindlist promotes integers to doubles.
+    if (type %in% c("integer", "double")) "numeric" else type
+  }
   reference_names <- names(artifacts[[1L]]$results)
-  reference_types <- vapply(artifacts[[1L]]$results, typeof, character(1L))
+  reference_types <- vapply(artifacts[[1L]]$results, column_type, character(1L))
   for (index in seq_along(artifacts)[-1L]) {
     observed_names <- names(artifacts[[index]]$results)
-    observed_types <- vapply(artifacts[[index]]$results, typeof, character(1L))
+    observed_types <- vapply(artifacts[[index]]$results, column_type, character(1L))
     if (!identical(observed_names, reference_names) ||
         !identical(observed_types, reference_types)) {
       stop("Shard result schemas are inconsistent.", call. = FALSE)
