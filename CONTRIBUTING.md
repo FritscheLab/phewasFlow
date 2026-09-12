@@ -4,6 +4,20 @@ Keep statistical behavior documented and tested. Preserve caller-owned inputs.
 Update deterministic tests and documentation when model behavior or result
 fields change.
 
+PheWAS is an optional suggested package for the interoperability example and
+comparison tests. `DESCRIPTION` pins the upstream revision through `Remotes`.
+Install development dependencies with `remotes::install_deps()` so that this
+GitHub dependency is resolved. Normal `phewasFlow` use requires only the runtime
+dependencies; comparison tests skip when PheWAS is unavailable.
+
+When changing model wrappers or the PheWAS revision, run the
+[shared-data comparison](https://github.com/FritscheLab/phewasFlow/tree/main/inst/examples/phewas)
+as well as the package
+tests. Record versions, numerical agreement, and measured runtime. Keep generated
+tables in an ignored output directory, and describe the simulation and limits
+when reporting any result. Do not infer superiority from agreement or from one
+timing run.
+
 Use the installation and dependency commands in the
 [README](README.md#development), reinstall the
 current source so parallel workers use it, then run:

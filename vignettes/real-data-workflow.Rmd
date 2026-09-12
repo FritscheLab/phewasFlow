@@ -17,6 +17,10 @@ already has its case, control, timing, and exclusion rules applied. For
 example, a binary phecode column should contain `1` for cases, `0` for
 controls, and `NA` when the phenotype is unavailable.
 
+For phenotypes constructed with the PheWAS package, see
+[Using PheWAS with phewasFlow](phewas-interoperability.html). That workflow
+preserves logical cases and controls, excluded values, and exact phecode names.
+
 ## Choose the analysis direction
 
 `phewasFlow` supports two common questions:

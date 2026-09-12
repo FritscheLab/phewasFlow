@@ -11,12 +11,16 @@ Authors@R: person(
 Author: Lars Fritsche [aut, cre]
 Maintainer: Lars Fritsche <larsf+lab@umich.edu>
 URL: https://github.com/FritscheLab/phewasFlow,
+    https://fritschelab.github.io/phewasFlow/,
     https://fritschelab.github.io
 BugReports: https://github.com/FritscheLab/phewasFlow/issues
-Description: Defines explicit, validated specifications for bidirectional
-    phenome-wide association studies. It fits Firth logistic, linear,
+Description: Provides a reproducible workflow for phenome-wide association
+    studies on analysis-ready phenotypes, including those constructed with
+    the 'PheWAS' package. It defines explicit, validated specifications for
+    scans in either direction and fits Firth logistic, linear,
     negative-binomial, and cumulative-link models; preserves skipped and
-    failed associations; applies family-wide multiple-testing correction;
+    failed associations; retains log-scale p-values through family-wide
+    multiple-testing correction;
     supports deterministic local and sharded execution; and provides matched
     model contrasts, concordance summaries, and publication-ready graphics.
 License: MIT + file LICENSE
@@ -42,9 +46,12 @@ Imports:
     yaml
 Suggests:
     knitr,
+    PheWAS,
     pkgdown,
     rmarkdown,
     testthat (>= 3.0.0),
     withr
+Remotes:
+    PheWAS/PheWAS@55dd1c24e228851922400cfba8d7db474565ccc7
 VignetteBuilder: knitr
 Config/testthat/edition: 3

@@ -3,8 +3,52 @@
 An R package from the [Fritsche Lab](https://fritschelab.github.io) at the
 University of Michigan for reproducible phenome-wide association studies.
 
+## Why phewasFlow exists
+
+`phewasFlow` makes repeated association scans easier to specify, restart, and
+audit. Its main use case is a prepared phenome analyzed across different
+exposures, endpoints, or adjustment models, locally or on a cluster.
+
+The [PheWAS package](https://github.com/PheWAS/PheWAS) offers a broader toolkit,
+including clinical-code mapping, phenotype construction, regression, plotting,
+and meta-analysis. Its regression options include Firth regression, parallel
+execution, and flexible outcome/predictor selection.
+
+`phewasFlow` adds a focused workflow around analysis-ready data:
+
+| Need | What phewasFlow provides |
+|---|---|
+| Repeat a declared analysis | Validated specifications for variable types, references, transformations, exclusions, and eligibility thresholds; detailed result records |
+| Resume a cluster run | Deterministic shards, input and model fingerprints, reusable completed work, and checks for exact phenotype coverage |
+| Keep correction consistent across shards | BH and Bonferroni correction once after combining all successful models in the configured testing family |
+| Compare additional covariate adjustment | Base and adjusted models fitted on the same complete-case participants for each phenotype |
+| Analyze counts and ordered outcomes | Negative-binomial models with optional log-offsets and proportional-odds ordinal models, alongside Firth and linear regression |
+| Retain very small p-values | Upper-tail calculations in log space and log-scale multiple-testing correction, with readable text output |
+
+**Very small p-values remain useful for reporting.** Calculating a small tail
+probability by subtracting from one can lose precision or round to zero.
+`phewasFlow` evaluates upper tails directly in log space and preserves them
+through multiple-testing correction. Fields such as `p_value_text` and
+`neg_log10_p` support tables and plots even when a probability is too small for
+the ordinary numeric `p_value` field.
+
+Use PheWAS when its integrated phenotype-construction and analysis tools meet
+your needs. Use `phewasFlow` when restartable execution, explicit analysis
+records, matched model comparisons, or these additional outcome models help
+your project. The packages can work together: construct phenotypes with PheWAS,
+then pass its participant table and metadata to `phewasFlow`. See
+[Using PheWAS with phewasFlow](https://fritschelab.github.io/phewasFlow/articles/phewas-interoperability.html)
+and the [runnable interoperability and comparison examples](https://github.com/FritscheLab/phewasFlow/tree/main/inst/examples/phewas).
+
+In the [recorded synthetic comparison](https://fritschelab.github.io/phewasFlow/articles/phewas-interoperability.html#recorded-comparison),
+coefficients and standard errors agreed to numerical precision, and PheWAS was
+faster on the tested small workloads. The article includes timing tables and a
+brief note on numerical differences for very small p-values.
+
 If you use `phewasFlow` in research, please cite the software and report the
 version used. See [Citation](#citation) for the reference.
+
+## Supported analyses
 
 `phewasFlow` fits one planned association model across many clinical
 phenotypes. It supports two common biomedical questions:
@@ -165,6 +209,7 @@ count, or package version changes.
 
 ## Vignette sources
 
+- [Using PheWAS with phewasFlow](https://github.com/FritscheLab/phewasFlow/blob/main/vignettes/phewas-interoperability.Rmd)
 - [Run a PheWAS with your data](vignettes/real-data-workflow.Rmd)
 - [PheWAS in both directions](vignettes/two-directions.Rmd)
 - [Comparisons and plots](vignettes/comparisons-and-plots.Rmd)

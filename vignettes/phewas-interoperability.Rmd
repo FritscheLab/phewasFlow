@@ -1,0 +1,225 @@
+---
+title: "Using PheWAS with phewasFlow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using PheWAS with phewasFlow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  eval = requireNamespace("PheWAS", quietly = TRUE)
+)
+```
+
+## Why this package exists
+
+`phewasFlow` packages the work around repeated association scans: declaring an
+analysis, checking inputs, restarting cluster tasks, auditing individual
+results, and comparing covariate adjustments on the same participants. Its
+inputs are already constructed phenotypes.
+
+The [PheWAS package](https://github.com/PheWAS/PheWAS) provides a broader toolkit
+for clinical-code mapping, phenotype construction, regression, plotting, and
+meta-analysis. The packages share capabilities such as Firth regression and
+parallel execution; phewasFlow focuses on the workflow around prepared data.
+
+| Task | Role of phewasFlow |
+|---|---|
+| Construct phenotypes from clinical codes | Accept prepared phenotypes from PheWAS or another upstream workflow |
+| Run Firth or linear regression | Provide explicit specifications and detailed result records around existing model engines; these models are shared capabilities |
+| Run on a cluster and resume | Fingerprint inputs and specifications, reuse matching completed shards, reject incomplete or incompatible shard sets |
+| Correct a sharded scan | Apply BH and Bonferroni once across successful models in the combined testing family |
+| Compare additional adjustment | Fit both specifications on the same complete-case rows for each phenotype |
+| Model count and ordered outcomes | Provide negative-binomial models with optional log-offsets and proportional-odds ordinal models |
+| Retain very small p-values | Calculate upper tails in log space and preserve log-scale values through correction and reporting |
+
+The packages can work together: construct phenotypes with PheWAS, then use
+phewasFlow's own model wrappers for repeated scans and matched model comparisons.
+
+## Retain very small p-values
+
+Calculating a small tail probability by subtracting from one can lose precision
+or round to zero. phewasFlow evaluates upper-tail probabilities directly in log
+space and keeps that representation through BH and Bonferroni correction,
+preserving very small p-values for reporting and plotting.
+
+Use `log_p`, `p_value_text`, and `neg_log10_p` when probabilities are too small
+for the ordinary numeric `p_value` field. Adjusted results also have text and
+negative-log representations.
+
+## Run the synthetic bridge
+
+PheWAS is an optional suggested dependency. Install the pinned upstream
+revision to run this article's example:
+
+```{r install-phewas, eval=FALSE}
+remotes::install_github(
+  "PheWAS/PheWAS@55dd1c24e228851922400cfba8d7db474565ccc7",
+  dependencies = NA, upgrade = "never"
+)
+```
+
+The installed example creates 400 simulated participants and dated ICD9CM
+records. It calls `PheWAS::createPhenotypes()` with a two-record case threshold,
+sex information, and the full eligible sample list, then fits a synthetic PRS
+scan with phewasFlow. No clinical findings are represented.
+
+```{r run-bridge}
+source(system.file(
+  "examples", "phewas", "use-phewas-phenotypes.R", package = "phewasFlow"
+))
+bridge <- run_phewas_bridge()
+table(bridge$result$status)
+bridge$result[bridge$result$status == "ok",
+              c("phenotype", "description", "status", "n_complete", "n_event")]
+```
+
+PheWAS's exclusion mappings also create phenotype columns with no observed
+cases in this tiny simulation. phewasFlow retains those as `skipped` rows with
+reason `insufficient_cases`. They are not part of the successful testing family.
+
+## Preserve the phenotype definitions
+
+For your own records, the upstream step has this form. The first four columns
+of `records` are participant ID, vocabulary, code, and date. `sample$id` must
+represent the population eligible for the intended analysis.
+
+```{r construct-phenotypes, eval=FALSE}
+phenotypes <- PheWAS::createPhenotypes(
+  records,
+  min.code.count = 2L,
+  id.sex = covariates[c("id", "sex")],
+  full.population.ids = sample$id
+)
+```
+
+Review the mapping version, observation window, case threshold, control
+definitions, and sex restrictions for your study. The example demonstrates
+software interoperability; it does not establish that these definitions are
+appropriate for your data.
+
+With a case threshold, PheWAS returns logical `TRUE` for cases, `FALSE` for
+controls, and `NA` for excluded or uncertain observations. Preserve `NA`.
+Do not fill it with `FALSE` or zero. Keep exact phecode column names when
+reading or converting data frames; use `check.names = FALSE` with base readers.
+
+```{r bridge-metadata}
+library(PheWAS)
+phenotypes <- bridge$phenotypes
+phenotype_ids <- setdiff(names(phenotypes), "id")
+metadata <- as.data.frame(PheWAS::addPhecodeInfo(
+  data.frame(phenotype = phenotype_ids),
+  groupnums = TRUE, groupcolors = TRUE
+))
+stopifnot(!anyDuplicated(metadata$phenotype))
+stopifnot(setequal(metadata$phenotype, phenotype_ids))
+metadata <- metadata[match(phenotype_ids, metadata$phenotype),
+                     c("phenotype", "description", "group", "groupnum", "color")]
+metadata$variable_type <- "binary"
+metadata$outcome_type <- "binary"
+metadata$reference <- "FALSE"
+head(metadata, 6L)
+```
+
+The reference is the character string `"FALSE"` because the participant columns
+are logical. The default `"0"` applies to numeric 0/1 coding. Alternatively,
+convert logical columns with `as.integer()` (which preserves `NA`) and declare
+`"0"` explicitly. Do not change the reference without changing the encoding.
+
+Attach PheWAS with `library(PheWAS)` before calling its metadata helper; the
+pinned version looks up its `pheinfo` dataset on the search path.
+`addPhecodeInfo()` uses an inner join. The checks above prevent an unknown code
+from disappearing silently. For custom or unmapped phenotypes, supply their
+description, group, group order, and color explicitly.
+
+Join the phenotype table to the declared sample and other participant tables:
+
+```{r join-tables, eval=FALSE}
+analysis <- phewasFlow::assemble_phewas_data(
+  sample,
+  phenotypes = phenotypes,
+  anchors = anchors,
+  covariates = covariates,
+  id = "id"
+)
+print(attr(analysis, "join_report"))
+```
+
+Keep categorical covariates as factors with declared reference levels. The
+sample and each input table must have unique, nonmissing IDs of the same type.
+The full runnable example creates a `phewas_spec()` and calls `run_phewas()`;
+inspect `bridge$spec` and `bridge$analysis` to see the exact inputs. For real
+data configuration and cluster execution, continue with
+[the data workflow](real-data-workflow.html) and [large runs](large-runs.html).
+
+## Compare numerical results and runtime
+
+The installed comparison script generates shared binary and continuous
+outcomes, then compares PheWAS and phewasFlow on the same data, covariates,
+references, and eligibility thresholds. Run it from a source checkout:
+
+```{bash compare-packages, eval=FALSE}
+Rscript inst/examples/phewas/compare-packages.R output/phewas-comparison
+```
+
+The default workload has 1,000 participants and four phenotypes of each type.
+Each package uses one worker, one unmeasured warmup, and three measured repeats
+with alternating execution order. Both receive missing anchor, covariate, and
+phenotype values. The binary comparison uses `phewas_ext(method = "logistf")`;
+the continuous comparison uses `phewas()`.
+
+The script checks coefficients, standard errors, natural-log p-values, and
+sample counts, including case/control counts for binary outcomes. It records
+parameters, package versions, the installed upstream revision, individual
+timings, and a summary. A numerical mismatch fails the command after writing
+the comparison tables. No participant data or fitted models are saved.
+
+Timings include scan validation and result assembly, but exclude simulation,
+specification construction, plotting, disk I/O, and multiple-testing correction.
+These small forward-scan workloads cover binary and continuous outcomes;
+timings depend on the data, hardware, and package versions. The
+[example README](https://github.com/FritscheLab/phewasFlow/tree/main/inst/examples/phewas)
+documents the tolerances, commands, outputs, and limitations in full.
+
+## Recorded comparison
+
+The following synthetic runs were measured on September 12, 2026, using R
+4.6.1 on ARM64 macOS, phewasFlow 0.1.0, PheWAS 0.99.6-1 at revision
+`55dd1c24e228851922400cfba8d7db474565ccc7`, and logistf 1.26.1. Both used seed
+20260912 and the methods described above. The timings are median elapsed
+seconds per scan of one outcome type; they are specific to this machine and
+workload, and the shortest measurements are especially sensitive to overhead.
+
+| Participants | Phenotypes per type | Repeats | Outcome | PheWAS seconds | phewasFlow seconds |
+|---:|---:|---:|---|---:|---:|
+| 1,000 | 4 | 3 | Binary | 0.022 | 0.031 |
+| 1,000 | 4 | 3 | Continuous | 0.005 | 0.011 |
+| 5,000 | 10 | 5 | Binary | 0.179 | 0.283 |
+| 5,000 | 10 | 5 | Continuous | 0.023 | 0.037 |
+
+PheWAS was faster in these runs. phewasFlow's validation, detailed result
+construction, and additional Firth model fits contribute to its runtime.
+The log-scale probability calculation itself does not require extra fits.
+
+Sample counts matched, and coefficients and standard errors agreed to numerical
+precision in both runs. All eight associations met the comparison tolerances
+in the smaller run. In the larger run, five of 20 associations had very small
+p-values that differed beyond the specified tolerance:
+
+| Synthetic outcome | PheWAS p-value | phewasFlow p-value |
+|---|---:|---:|
+| `binary_003` | `5.66214e-15` | `5.64294e-15` |
+| `binary_004` | 0 | `3.37208e-20` |
+| `binary_006` | `5.55112e-16` | `5.82611e-16` |
+| `binary_007` | `1.11022e-16` | `1.60862e-16` |
+| `binary_008` | 0 | `7.13610e-36` |
+
+Values are rounded for display. In the tested `logistf` version, the calculation
+`1 - pchisq(...)` can lose precision or return zero for very small p-values,
+explaining both the nonzero and zero differences above. phewasFlow evaluates
+the upper tail directly in log space; an independent high-precision check
+confirmed these probabilities for the same fitted statistics. The association
+test is unchanged.
